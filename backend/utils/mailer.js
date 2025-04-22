@@ -27,6 +27,8 @@ const sendOrderEmail = async (to, order) => {
     <h2>🧾 Xác nhận đơn hàng từ Linh Kiện Store</h2>
     <p><strong>Khách hàng:</strong> ${order.name}</p>
     <p><strong>Điện thoại:</strong> ${order.phone}</p>
+    <p><strong>Mã đơn hàng:</strong> ${order.orderCode}</p>
+    <p><strong>Nội dung chuyển khoản:</strong> ${order.orderCode}</p>
     <p><strong>Địa chỉ:</strong> ${order.addressDetail}, ${order.ward}, ${order.district}, ${order.province}</p>
     <p><strong>Phương thức thanh toán:</strong> ${order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản ngân hàng'}</p>
 

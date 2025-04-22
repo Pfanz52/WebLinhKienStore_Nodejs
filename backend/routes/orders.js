@@ -1,17 +1,22 @@
 const express = require('express');
 const Order = require('../models/Order');
+const Cart = require('../models/Cart'); // ✅ Bổ sung nếu chưa có
 const { sendOrderEmail } = require('../utils/mailer');
 const { authMiddleware } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// 📌 Lấy đơn hàng của người dùng hiện tại (đã đăng nhập)
+// 📌 Lấy danh sách đơn hàng của user
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    const orders = await Order.find({ userId: req.user.id }).sort({
+      createdAt: -1,
+    });
     res.json(orders);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi khi lấy đơn hàng', error: err.message });
+    res
+      .status(500)
+      .json({ message: 'Lỗi khi lấy đơn hàng', error: err.message });
   }
 });
 
@@ -19,15 +24,31 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const {
-      name, email, phone, province, district, ward,
-      addressDetail, note, paymentMethod, voucher, products, total
+      name,
+      email,
+      phone,
+      province,
+      district,
+      ward,
+      addressDetail,
+      note,
+      paymentMethod,
+      voucher,
+      products,
+      total,
     } = req.body;
 
+    if (!products || products.length === 0) {
+      return res.status(400).json({ message: 'Giỏ hàng trống!' });
+    }
+
+    const orderCode = 'LK' + Date.now();
     const estimatedDelivery = new Date();
-    estimatedDelivery.setDate(estimatedDelivery.getDate() + 3); // giao sau 3 ngày
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + 3);
 
     const newOrder = new Order({
-      userId: req.user.id, // lấy từ middleware xác thực
+      userId: req.user.id,
+      orderCode,
       name,
       email,
       phone,
@@ -43,12 +64,15 @@ router.post('/', authMiddleware, async (req, res) => {
       status: 'Chờ xác nhận',
       shippingProvider: 'Giao hàng nhanh',
       estimatedDelivery,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
 
     await newOrder.save();
 
-    // 📬 Gửi email xác nhận đơn hàng
+    // ✅ Xoá giỏ hàng sau khi đặt hàng
+    await Cart.findOneAndUpdate({ userId: req.user.id }, { items: [] });
+
+    // ✅ Gửi mail
     await sendOrderEmail(email, {
       name,
       phone,
@@ -59,7 +83,8 @@ router.post('/', authMiddleware, async (req, res) => {
       note,
       paymentMethod,
       total,
-      products
+      products,
+      orderCode,
     });
 
     res.status(201).json({ message: 'Đặt hàng thành công', order: newOrder });
@@ -69,21 +94,29 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// 📌 Hủy đơn nếu chưa quá 2h và chưa được xác nhận
+// 📌 Hủy đơn hàng
 router.patch('/:id/cancel', authMiddleware, async (req, res) => {
   try {
-    const order = await Order.findOne({ _id: req.params.id, userId: req.user.id });
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
 
-    if (!order) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    if (!order)
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
 
     if (order.status !== 'Chờ xác nhận') {
-      return res.status(400).json({ message: 'Không thể hủy đơn đã xác nhận hoặc đang giao' });
+      return res
+        .status(400)
+        .json({ message: 'Không thể hủy đơn đã xác nhận hoặc đang giao' });
     }
 
     const now = new Date();
     const diffInHours = (now - new Date(order.createdAt)) / (1000 * 60 * 60);
     if (diffInHours > 2) {
-      return res.status(400).json({ message: 'Đã quá thời gian cho phép hủy đơn (2 giờ)' });
+      return res
+        .status(400)
+        .json({ message: 'Đã quá thời gian cho phép hủy đơn (2 giờ)' });
     }
 
     order.status = 'Đã hủy';
@@ -91,7 +124,9 @@ router.patch('/:id/cancel', authMiddleware, async (req, res) => {
 
     res.json({ message: 'Đơn hàng đã được hủy thành công', order });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi khi hủy đơn hàng', error: err.message });
+    res
+      .status(500)
+      .json({ message: 'Lỗi khi hủy đơn hàng', error: err.message });
   }
 });
 

@@ -3,25 +3,27 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const authRoutes = require('./routes/auth'); // ✅ CHỈ GỌI 1 LẦN
+const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const brandRoutes = require('./routes/brands');
 const contactRoutes = require('./routes/contact');
+const cartRoutes = require('./routes/cart'); // ✅ Thêm đúng chỗ
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes); // ✅ Dùng đúng
-app.use('/api/users', require('./routes/users'));
-app.use('/api/users', userRoutes);
+// ❗Chỉ gọi 1 lần mỗi route
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);           // ✅ Giữ dòng này
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/brands', brandRoutes);
-app.use('/api/orders', require('./routes/orders'));
 app.use('/api/contact', contactRoutes);
+app.use('/api/cart', cartRoutes);            // ✅ Gọi thêm cart route đúng cách
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))

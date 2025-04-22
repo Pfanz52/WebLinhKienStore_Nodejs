@@ -24,6 +24,8 @@ const orderSchema = new mongoose.Schema({
   status: { type: String, default: 'Chờ xác nhận' },
   shippingProvider: { type: String, default: 'Giao hàng nhanh' },
   estimatedDelivery: Date,
+  orderCode: { type: String },
+
   createdAt: { type: Date, default: Date.now }
 });
 
