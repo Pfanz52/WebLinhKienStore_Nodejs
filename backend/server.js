@@ -24,6 +24,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/cart', cartRoutes);            // ✅ Gọi thêm cart route đúng cách
+app.use('/api/categories', require('./routes/categories'));
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
